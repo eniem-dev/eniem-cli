@@ -10,6 +10,9 @@ vi.mock("../../lib/ai-init.js", () => ({
   copyAiFiles: vi.fn(),
   ensureSpecsFolder: vi.fn(),
   cleanupTempDir: vi.fn(),
+  checkBeadsInstalled: vi.fn(),
+  installBeads: vi.fn(),
+  initBeads: vi.fn(),
 }));
 
 import {
@@ -18,6 +21,9 @@ import {
   copyAiFiles,
   ensureSpecsFolder,
   cleanupTempDir,
+  checkBeadsInstalled,
+  installBeads,
+  initBeads,
 } from "../../lib/ai-init.js";
 
 const mockCheckEniExists = vi.mocked(checkEniExists);
@@ -25,11 +31,17 @@ const mockSparseCloneBoilerplate = vi.mocked(sparseCloneBoilerplate);
 const mockCopyAiFiles = vi.mocked(copyAiFiles);
 const mockEnsureSpecsFolder = vi.mocked(ensureSpecsFolder);
 const mockCleanupTempDir = vi.mocked(cleanupTempDir);
+const mockCheckBeadsInstalled = vi.mocked(checkBeadsInstalled);
+const mockInstallBeads = vi.mocked(installBeads);
+const mockInitBeads = vi.mocked(initBeads);
 
 describe("AiCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCleanupTempDir.mockResolvedValue(undefined);
+    // Default beads mocks - installed and initialized successfully
+    mockCheckBeadsInstalled.mockResolvedValue(true);
+    mockInitBeads.mockResolvedValue({ success: true });
   });
 
   describe("Initial State", () => {
@@ -123,7 +135,7 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(lastFrame()).toContain("AI workflow initialized!");
       expect(lastFrame()).toContain("Copied files:");
@@ -152,7 +164,7 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={true} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(lastFrame()).toContain("AI workflow files updated!");
     });
@@ -176,9 +188,9 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      expect(lastFrame()).toContain("./loop.sh plan");
+      expect(lastFrame()).toContain("./.eni/loop.sh plan");
     });
 
     it("does not show specs created message when specs already existed", async () => {
@@ -200,7 +212,7 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(lastFrame()).not.toContain("Created specs/");
     });
@@ -219,7 +231,7 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(lastFrame()).toContain("Network error");
     });
@@ -240,7 +252,7 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(lastFrame()).toContain("Permission denied");
     });
@@ -265,7 +277,7 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(lastFrame()).toContain("Cannot create directory");
     });
@@ -284,7 +296,7 @@ describe("AiCommand", () => {
 
       render(<AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />);
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       expect(mockCleanupTempDir).toHaveBeenCalledWith("/tmp/test-cleanup");
     });

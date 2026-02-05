@@ -12,6 +12,9 @@ import {
   copyAiFiles,
   ensureSpecsFolder,
   cleanupTempDir,
+  checkBeadsInstalled,
+  installBeads,
+  initBeads,
 } from "../lib/ai-init.js";
 
 type AiInitStep =
@@ -19,6 +22,10 @@ type AiInitStep =
   | "confirm_update"
   | "cloning"
   | "copying"
+  | "check_beads"
+  | "confirm_install"
+  | "installing"
+  | "init_beads"
   | "complete"
   | "error";
 
@@ -35,11 +42,17 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const [specsCreated, setSpecsCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tempDir, setTempDir] = useState<string | null>(null);
+  const [beadsInstalled, setBeadsInstalled] = useState(false);
+  const [beadsInitialized, setBeadsInitialized] = useState(false);
+  const [beadsError, setBeadsError] = useState<string | null>(null);
 
   // Refs to prevent duplicate effect runs
   const isCheckingRef = useRef(false);
   const isCloningRef = useRef(false);
   const isCopyingRef = useRef(false);
+  const isCheckingBeadsRef = useRef(false);
+  const isInstallingRef = useRef(false);
+  const isInitBeadsRef = useRef(false);
 
   // Step 1: Check if .eni exists
   useEffect(() => {
@@ -116,19 +129,83 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
         setCopiedFiles(allCopiedFiles);
         setSpecsCreated(specsResult.created);
-        setStep("complete");
+        setStep("check_beads");
         isCopyingRef.current = false;
       };
       copy();
     }
   }, [step, tempDir, targetDir]);
 
-  // Handle confirmation
+  // Step 4: Check if beads is installed
+  useEffect(() => {
+    if (step === "check_beads" && !isCheckingBeadsRef.current) {
+      isCheckingBeadsRef.current = true;
+      const check = async () => {
+        const installed = await checkBeadsInstalled();
+        setBeadsInstalled(installed);
+        if (installed) {
+          setStep("init_beads");
+        } else {
+          setStep("confirm_install");
+        }
+        isCheckingBeadsRef.current = false;
+      };
+      check();
+    }
+  }, [step]);
+
+  // Step 5: Install beads
+  useEffect(() => {
+    if (step === "installing" && !isInstallingRef.current) {
+      isInstallingRef.current = true;
+      const install = async () => {
+        const result = await installBeads();
+        if (result.success) {
+          setBeadsInstalled(true);
+          setStep("init_beads");
+        } else {
+          setBeadsError(result.error ?? "Failed to install beads");
+          setStep("complete");
+        }
+        isInstallingRef.current = false;
+      };
+      install();
+    }
+  }, [step]);
+
+  // Step 6: Initialize beads in project
+  useEffect(() => {
+    if (step === "init_beads" && !isInitBeadsRef.current) {
+      isInitBeadsRef.current = true;
+      const init = async () => {
+        const result = await initBeads(targetDir);
+        if (result.success) {
+          setBeadsInitialized(true);
+        } else {
+          setBeadsError(result.error ?? "Failed to initialize beads");
+        }
+        setStep("complete");
+        isInitBeadsRef.current = false;
+      };
+      init();
+    }
+  }, [step, targetDir]);
+
+  // Handle confirmation for update
   const handleConfirm = (confirmed: boolean) => {
     if (confirmed) {
       setStep("cloning");
     } else {
       process.exit(0);
+    }
+  };
+
+  // Handle confirmation for beads install
+  const handleBeadsConfirm = (confirmed: boolean) => {
+    if (confirmed) {
+      setStep("installing");
+    } else {
+      setStep("complete");
     }
   };
 
@@ -159,6 +236,27 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
       {step === "copying" && <Spinner label="Copying files to project..." />}
 
+      {step === "check_beads" && <Spinner label="Checking beads installation..." />}
+
+      {step === "confirm_install" && (
+        <Box flexDirection="column">
+          <Text color="yellow">
+            Beads (bd) is not installed. Beads is required for the AI workflow.
+          </Text>
+          <Box marginTop={1}>
+            <Confirm
+              label="Install beads via npm? (npm install -g @beads/bd)"
+              onConfirm={handleBeadsConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "installing" && <Spinner label="Installing beads..." />}
+
+      {step === "init_beads" && <Spinner label="Initializing beads in project..." />}
+
       {step === "complete" && (
         <Box flexDirection="column">
           <StatusMessage status="success">
@@ -182,9 +280,47 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
             </Box>
           )}
 
+          {beadsInstalled && beadsInitialized && (
+            <Box marginTop={1}>
+              <StatusMessage status="success">Beads initialized</StatusMessage>
+            </Box>
+          )}
+
+          {beadsInstalled && !beadsInitialized && beadsError && (
+            <Box marginTop={1}>
+              <StatusMessage status="warning">
+                Beads installed but init failed: {beadsError}
+              </StatusMessage>
+              <Text dimColor>Run <Text color="cyan">bd init</Text> manually</Text>
+            </Box>
+          )}
+
+          {!beadsInstalled && beadsError && (
+            <Box marginTop={1}>
+              <StatusMessage status="warning">
+                Failed to install beads: {beadsError}
+              </StatusMessage>
+              <Text dimColor>
+                Install manually: <Text color="cyan">npm install -g @beads/bd</Text>
+              </Text>
+            </Box>
+          )}
+
+          {!beadsInstalled && !beadsError && (
+            <Box marginTop={1}>
+              <StatusMessage status="warning">Beads not installed</StatusMessage>
+              <Text dimColor>
+                Install with: <Text color="cyan">npm install -g @beads/bd</Text>
+              </Text>
+              <Text dimColor>
+                Then run: <Text color="cyan">bd init</Text>
+              </Text>
+            </Box>
+          )}
+
           <Box marginTop={1}>
             <Text dimColor>
-              Run <Text color="cyan">./loop.sh plan</Text> to start planning
+              Run <Text color="cyan">./.eni/loop.sh plan</Text> to start planning
               with AI
             </Text>
           </Box>

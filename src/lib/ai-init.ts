@@ -191,3 +191,57 @@ export async function cleanupTempDir(tempDir: string): Promise<void> {
     // Ignore cleanup errors
   }
 }
+
+/**
+ * Checks if beads (bd) CLI is installed
+ */
+export async function checkBeadsInstalled(): Promise<boolean> {
+  try {
+    await execa("bd", ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Installs beads via npm globally
+ */
+export async function installBeads(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    await execa("npm", ["install", "-g", "@beads/bd"]);
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("ENOENT")) {
+      return {
+        success: false,
+        error: "npm not found. Please install beads manually.",
+      };
+    }
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Initializes beads in the target directory
+ */
+export async function initBeads(
+  targetDir: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    await execa("bd", ["init"], { cwd: targetDir });
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: errorMessage };
+  }
+}
