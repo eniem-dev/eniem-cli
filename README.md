@@ -1,98 +1,14 @@
-# eniem-cli
+# eniem-cli (Archived)
 
-Interactive CLI wizard for scaffolding [Eniem](https://eniem.dev) projects.
+> **This repository has been archived.** Development has moved to the [eniem monorepo](https://github.com/eniem-dev/eniem).
 
-- Website: [eniem.dev](https://eniem.dev)
-- Documentation: [doc.eniem.dev](https://doc.eniem.dev)
+The CLI is now maintained at [`packages/cli`](https://github.com/eniem-dev/eniem/tree/main/packages/cli) in the monorepo.
 
 ## Installation
-
-```bash
-npm install -g eniem-cli
-```
-
-Or run directly without installing:
 
 ```bash
 pnpm dlx eniem-cli my-app
 npx eniem-cli my-app
 ```
 
-## Usage
-
-```bash
-eniem-cli [project-name]
-```
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--git-host` | SSH host alias for git clone (default: `github.com`) |
-| `--help, -h` | Show help message |
-| `--version, -v` | Show version number |
-
-### Examples
-
-```bash
-# Create a new project
-eniem-cli my-app
-
-# Use a custom SSH host alias (from ~/.ssh/config)
-eniem-cli --git-host 0xtiby my-app
-```
-
-## Products Command
-
-Manage Polar products interactively. **Run this command from your Eniem project directory.**
-
-```bash
-eniem-cli products [options]
-```
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--env` | Environment: `sandbox` or `production` (default: `sandbox`) |
-| `--prod` | Shorthand for `--env=production` |
-| `--token` | Polar access token (bypasses `.env` lookup) |
-
-### Examples
-
-```bash
-# Manage sandbox products
-eniem-cli products
-
-# Manage production products
-eniem-cli products --prod
-
-# Use a specific access token
-eniem-cli products --prod --token=polar_xxx
-```
-
-### Features
-
-- **Add products**: Create new products with pricing, features, and display options
-- **Remove products**: Archive products on Polar and remove from local file
-- **Sync to Polar**: Push local product changes to Polar API
-- **Sync from sandbox**: Copy sandbox products to production environment
-- **Unarchive products**: Restore archived products on Polar
-- **Clean up Polar**: Manage orphaned products (archive or import to local file)
-- **Regenerate TypeScript**: Update generated product exports
-
-Products are stored in `products.sandbox.json` and `products.production.json`, with TypeScript exports generated in `src/features/subscription/products.generated.ts`.
-
-## What it sets up
-
-The wizard will guide you through configuring:
-
-- Project name and directory
-- OAuth providers (GitHub, Twitter)
-- Payment integration (Polar)
-- Storage configuration (DigitalOcean Spaces)
-- Analytics (Umami, PostHog)
-
-## License
-
-MIT
+For documentation, visit [doc.eniem.dev](https://doc.eniem.dev).
