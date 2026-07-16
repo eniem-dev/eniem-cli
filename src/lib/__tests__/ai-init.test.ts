@@ -8,6 +8,9 @@ import {
   copyAiFiles,
   ensureSpecsFolder,
   cleanupTempDir,
+  checkBeadsInstalled,
+  installBeads,
+  initBeads,
 } from "../ai-init.js";
 
 vi.mock("execa", () => ({
@@ -267,6 +270,76 @@ describe("ai-init", () => {
       await expect(
         cleanupTempDir("/non/existent/path")
       ).resolves.not.toThrow();
+    });
+  });
+
+  describe("checkBeadsInstalled", () => {
+    it("returns true when bd command succeeds", async () => {
+      vi.mocked(execa).mockResolvedValue({} as never);
+
+      const result = await checkBeadsInstalled();
+
+      expect(result).toBe(true);
+      expect(execa).toHaveBeenCalledWith("bd", ["--version"]);
+    });
+
+    it("returns false when bd command fails", async () => {
+      vi.mocked(execa).mockRejectedValue(new Error("Command not found"));
+
+      const result = await checkBeadsInstalled();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("installBeads", () => {
+    it("runs npm install -g @beads/bd", async () => {
+      vi.mocked(execa).mockResolvedValue({} as never);
+
+      const result = await installBeads();
+
+      expect(result.success).toBe(true);
+      expect(execa).toHaveBeenCalledWith("npm", ["install", "-g", "@beads/bd"]);
+    });
+
+    it("returns error when npm is not found", async () => {
+      vi.mocked(execa).mockRejectedValue(new Error("ENOENT: npm not found"));
+
+      const result = await installBeads();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("npm not found");
+    });
+
+    it("returns error message on other failures", async () => {
+      vi.mocked(execa).mockRejectedValue(new Error("Permission denied"));
+
+      const result = await installBeads();
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Permission denied");
+    });
+  });
+
+  describe("initBeads", () => {
+    it("runs bd init in target directory", async () => {
+      vi.mocked(execa).mockResolvedValue({} as never);
+
+      const result = await initBeads("/test/project");
+
+      expect(result.success).toBe(true);
+      expect(execa).toHaveBeenCalledWith("bd", ["init"], {
+        cwd: "/test/project",
+      });
+    });
+
+    it("returns error on failure", async () => {
+      vi.mocked(execa).mockRejectedValue(new Error("Already initialized"));
+
+      const result = await initBeads("/test/project");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Already initialized");
     });
   });
 });
